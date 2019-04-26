@@ -9,6 +9,11 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 
+// NEW: Added for weapon functionality
+#include "../Weapons/BallProjectile.h"
+#include "Animation/AnimInstance.h"
+#include "Kismet/GameplayStatics.h"
+
 //////////////////////////////////////////////////////////////////////////
 // ATP_ThirdPersonCharacter
 
@@ -45,7 +50,40 @@ ATP_ThirdPersonCharacter::ATP_ThirdPersonCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	// NEW: Character Mesh and Gun added
+
+	// Create a mesh component that will be used when being viewed from a '3rd person' view
+	Mesh3P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh3P"));
+	Mesh3P->SetOnlyOwnerSee(false);
+	Mesh3P->bCastDynamicShadow = true;
+	Mesh3P->CastShadow = true;
+	Mesh3P->RelativeRotation = FRotator(1.9f, -19.19f, 5.2f);
+	Mesh3P->RelativeLocation = FVector(-0.5f, -4.4f, -155.7f);
+
+	// Create a gun mesh component
+	TP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TP_Gun"));
+	TP_Gun->SetOnlyOwnerSee(false);
+	TP_Gun->bCastDynamicShadow = true;
+	TP_Gun->CastShadow = true;
+	// TP_Gun->SetupAttachment(BaseMesh, TEXT("GripPoint"));
+	TP_Gun->SetupAttachment(RootComponent);
+
+	TP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
+	TP_MuzzleLocation->SetupAttachment(TP_Gun);
+	TP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
 }
+
+
+void ATP_ThirdPersonCharacter::BeginPlay()
+{
+	// Call the base class  
+	Super::BeginPlay();
+
+	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
+	TP_Gun->AttachToComponent(Mesh3P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -56,6 +94,9 @@ void ATP_ThirdPersonCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+
+	// Bind fire event
+	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ATP_ThirdPersonCharacter::OnFire);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ATP_ThirdPersonCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ATP_ThirdPersonCharacter::MoveRight);
@@ -76,6 +117,48 @@ void ATP_ThirdPersonCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ATP_ThirdPersonCharacter::OnResetVR);
 }
 
+void ATP_ThirdPersonCharacter::OnFire()
+{
+	// try and fire a projectile
+	if (ProjectileClass != NULL)
+	{
+		UWorld* const World = GetWorld();
+		if (World != NULL)
+		{
+			const FRotator SpawnRotation = GetControlRotation();
+			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+			const FVector SpawnLocation = ((TP_MuzzleLocation != nullptr) ? TP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+			// spawn the projectile at the muzzle
+			World->SpawnActor<ABallProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+		
+		}
+	}
+
+	// try and play the sound if specified
+	if (FireSound != NULL)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+	}
+
+	// try and play a firing animation if specified
+	if (FireAnimation != NULL)
+	{
+		// Get the animation object for the arms mesh
+		
+		// TODO: Make sure third person mesh has AnimInstance
+
+		/*UAnimInstance* AnimInstance = Mesh3P->GetAnimInstance();
+		if (AnimInstance != NULL)
+		{
+			AnimInstance->Montage_Play(FireAnimation, 1.f);
+		}*/
+	}
+}
 
 void ATP_ThirdPersonCharacter::OnResetVR()
 {

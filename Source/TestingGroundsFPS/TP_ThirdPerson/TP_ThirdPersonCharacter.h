@@ -18,9 +18,26 @@ class ATP_ThirdPersonCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+	/** Pawn mesh: TODO: Verify can be used for 3rd person view */
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	class USkeletalMeshComponent* Mesh3P;
+
+	/** Gun mesh: TODO: Verify can be used for 3rd person view */
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+	class USkeletalMeshComponent* TP_Gun;
+
+	/** Location on gun mesh where projectiles should spawn. */
+	UPROPERTY(VisibleDefaultsOnly, Category = "Mesh")
+	class USceneComponent* TP_MuzzleLocation;
+
 public:
 	ATP_ThirdPersonCharacter();
 
+protected:
+	virtual void BeginPlay();
+
+public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseTurnRate;
@@ -29,7 +46,26 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
+	/** Gun muzzle's offset from the characters location */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
+	FVector GunOffset;
+
+	/** Projectile class to spawn */
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile")
+	TSubclassOf<class ABallProjectile> ProjectileClass;
+
+	/** Sound to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
+	class USoundBase* FireSound;
+
+	/** AnimMontage to play each time we fire */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay")
+	class UAnimMontage* FireAnimation;
+
 protected:
+
+	/** Fires a projectile. */
+	void OnFire();
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
