@@ -4,6 +4,7 @@
 #include "Gun.h"
 #include "BallProjectile.h"
 #include "Animation/AnimInstance.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 AGun::AGun()
@@ -18,7 +19,8 @@ AGun::AGun()
 
 	MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
 	MuzzleLocation->SetupAttachment(SkeletalMesh);
-	MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.8f, -10.6f));
+	MuzzleLocation->SetRelativeLocation(FVector(0.2f, 60.0f, 11.2f));
+
 }
 
 // Called when the game starts or when spawned
@@ -35,3 +37,39 @@ void AGun::Tick(float DeltaTime)
 
 }
 
+void AGun::OnFire()
+{
+	// Try and fire a projectile
+	if (ProjectileClass != NULL)
+	{
+		UWorld* const World = GetWorld();
+		if (World != NULL)
+		{
+			const FRotator SpawnRotation = GetActorRotation();
+
+			// MuzzleOffset is in local space, so transform it to world space before offsetting from the gun location to find the final muzzle position
+			if (!ensure(MuzzleLocation != nullptr)) { return; }
+			const FVector SpawnLocation = MuzzleLocation->GetComponentLocation();
+
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+		}
+	}
+
+	// try and play the sound if specified
+	if (FireSound != NULL)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+	}
+
+	// try and play a firing animation if specified
+	if (FireAnimation != NULL)
+	{
+		// Get the animation object
+		if (ensure(AnimInstance != NULL)) 
+		{
+			AnimInstance->Montage_Play(FireAnimation, 1.0f);
+		}
+	}
+}
