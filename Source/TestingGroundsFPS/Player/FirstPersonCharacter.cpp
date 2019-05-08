@@ -166,6 +166,7 @@ void AFirstPersonCharacter::OnFire()
 				if (FP_Gun)
 				{
 					FP_Gun->OnFire();
+					UE_LOG(LogTemp, Warning, TEXT("Gun OnFire() called"));
 				}
 				else
 				{
@@ -184,10 +185,13 @@ void AFirstPersonCharacter::OnFire()
 		}
 	}
 
-	// try and play the sound if specified
-	if (FireSound != NULL)
+	if (!FP_Gun)
 	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		// try and play the sound if specified
+		if (FireSound != NULL)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+		}
 	}
 
 	// try and play a firing animation if specified

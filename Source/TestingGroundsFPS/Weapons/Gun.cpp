@@ -45,15 +45,21 @@ void AGun::OnFire()
 		UWorld* const World = GetWorld();
 		if (World != NULL)
 		{
-			const FRotator SpawnRotation = GetActorRotation();
+			//const FRotator SpawnRotation = GetActorRotation();
 
 			// MuzzleOffset is in local space, so transform it to world space before offsetting from the gun location to find the final muzzle position
 			if (!ensure(MuzzleLocation != nullptr)) { return; }
 			const FVector SpawnLocation = MuzzleLocation->GetComponentLocation();
 
+			const FRotator SpawnRotation = MuzzleLocation->GetComponentRotation();
+
 			//Set Spawn Collision Handling Override
 			FActorSpawnParameters ActorSpawnParams;
 			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+			// spawn the projectile at the muzzle
+			World->SpawnActor<ABallProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+			UE_LOG(LogTemp, Warning, TEXT("SpawnActor Called"))
 		}
 	}
 
