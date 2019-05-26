@@ -51,6 +51,7 @@ public:
 
 public:
 	/** Fires a projectile. */
+	UFUNCTION(BlueprintCallable, Category = Gameplay)
 	void OnFire();
 
 };
